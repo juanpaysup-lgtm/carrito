@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Dibujo Técnico - Eco-Torky</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        
+        body {
+            background: #2c3e50;
+            color: #ecf0f1;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Panel de herramientas */
+        .toolbar {
+            width: 250px;
+            background: #34495e;
+            padding: 20px;
+            border-right: 2px solid #1abc9c;
+            overflow-y: auto;
+        }
+        
+        .tool-section {
+            margin-bottom: 25px;
+        }
+        
+        .tool-section h3 {
+            color: #1abc9c;
+            margin-bottom: 15px;
+            font-size: 16px;
+            border-bottom: 1px solid #4a6572;
+            padding-bottom: 8px;
+        }
+        
+        .tool-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .tool-btn {
+            background: #4a6572;
+            border: none;
+            color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .tool-btn:hover {
+            background: #556f7c;
+            transform: translateY(-2px);
+        }
+        
+        .tool-btn.active {
+            background: #1abc9c;
+            color: white;
+            box-shadow: 0 4px 8px rgba(26, 188, 156, 0.3);
+        }
+        
+        .measurement-input {
+            background: #4a6572;
+            border: 1px solid #5d7a8c;
+            color: #ecf0f1;
+            padding: 8px;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        
+        .measurement-input:focus {
+            outline: none;
+            border-color: #1abc9c;
+        }
+        
+        .unit-select {
+            background: #4a6572;
+            border: 1px solid #5d7a8c;
+            color: #ecf0f1;
+            padding: 8px;
+            border-radius: 4px;
+            width: 100%;
+        }
+        
+        .color-picker {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .color-option {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .color-option.active {
+            border-color: #ecf0f1;
+        }
+        
+        .preset-measurements {
+            background: #4a6572;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        .preset-item {
+            padding: 5px;
+            margin: 5px 0;
+            background: #5d7a8c;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .preset-item:hover {
+            background: #6b8a9e;
+        }
+        
+        /* Área de dibujo */
+        .drawing-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1a252f;
+        }
+        
+        .drawing-controls {
+            background: #2c3e50;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1abc9c;
+        }
+        
+        .scale-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            background: #4a6572;
+            border: none;
+            color: #ecf0f1;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .control-btn:hover {
+            background: #556f7c;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+            position: relative;
+        }
+        
+        #drawing-canvas {
+            background: #1a252f;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            cursor: crosshair;
+        }
+        
+        .grid-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            opacity: 0.2;
+        }
+        
+        .status-bar {
+            background: #2c3e50;
+            padding: 8px 20px;
+            border-top: 1px solid #4a6572;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        /* Modal de ayuda */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: #34495e;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal h2 {
+            color: #1abc9c;
+            margin-bottom: 20px;
+        }
+        
+        .close-modal {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Panel de herramientas -->
+        <div class="toolbar">
+            <div class="tool-section">
+                <h3>Herramientas de Dibujo</h3>
+                <div class="tool-buttons">
+                    <button class="tool-btn active" data-tool="select">Seleccionar</button>
+                    <button class="tool-btn" data-tool="rectangle">Rectángulo</button>
+                    <button class="tool-btn" data-tool="circle">Círculo</button>
+                    <button class="tool-btn" data-tool="line">Línea</button>
+                    <button class="tool-btn" data-tool="text">Texto</button>
+                    <button class="tool-btn" data-tool="dimension">Dimensión</button>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Medidas</h3>
+                <input type="number" class="measurement-input" id="width-input" placeholder="Ancho (cm)" min="1" value="48">
+                <input type="number" class="measurement-input" id="height-input" placeholder="Alto (cm)" min="1" value="40">
+                <input type="number" class="measurement-input" id="length-input" placeholder="Largo (cm)" min="1" value="75">
+                <select class="unit-select" id="unit-select">
+                    <option value="cm">Centímetros (cm)</option>
+                    <option value="mm">Milímetros (mm)</option>
+                </select>
+                
+                <div class="preset-measurements">
+                    <div class="preset-item" data-width="185" data-height="155" data-length="90">Vehículo Completo</div>
+                    <div class="preset-item" data-width="48" data-height="40" data-length="75">Asiento Individual</div>
+                    <div class="preset-item" data-width="78" data-height="35" data-length="75">Cajón de Carga</div>
+                    <div class="preset-item" data-width="50" data-height="50" data-length="50">Rueda</div>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Colores</h3>
+                <div class="color-picker">
+                    <div class="color-option active" style="background:#1abc9c" data-color="#1abc9c"></div>
+                    <div class="color-option" style="background:#e74c3c" data-color="#e74c3c"></div>
+                    <div class="color-option" style="background:#3498db" data-color="#3498db"></div>
+                    <div class="color-option" style="background:#f1c40f" data-color="#f1c40f"></div>
+                    <div class="color-option" style="background:#9b59b6" data-color="#9b59b6"></div>
+                    <div class="color-option" style="background:#2ecc71" data-color="#2ecc71"></div>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Acciones</h3>
+                <div class="tool-buttons">
+                    <button class="tool-btn" id="clear-btn">Limpiar</button>
+                    <button class="tool-btn" id="export-btn">Exportar</button>
+                    <button class="tool-btn" id="grid-toggle">Cuadrícula: ON</button>
+                    <button class="tool-btn" id="help-btn">Ayuda</button>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Vistas Predefinidas</h3>
+                <div class="tool-buttons">
+                    <button class="tool-btn" data-view="top">Planta</button>
+                    <button class="tool-btn" data-view="front">Frontal</button>
+                    <button class="tool-btn" data-view="side">Lateral</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Área de dibujo -->
+        <div class="drawing-area">
+            <div class="drawing-controls">
+                <div class="scale-controls">
+                    <button class="control-btn" id="zoom-out">-</button>
+                    <span id="zoom-level">100%</span>
+                    <button class="control-btn" id="zoom-in">+</button>
+                    <button class="control-btn" id="fit-to-screen">Ajustar</button>
+                </div>
+                
+                <div>
+                    <span id="cursor-position">X: 0, Y: 0</span>
+                </div>
+                
+                <div>
+                    <span>Escala: 1:10 | 1cm = 10px</span>
+                </div>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="drawing-canvas" width="2000" height="1400"></canvas>
+                <canvas class="grid-overlay" id="grid-canvas" width="2000" height="1400"></canvas>
+            </div>
+            
+            <div class="status-bar">
+                <span id="selected-tool">Herramienta: Seleccionar</span>
+                <span id="measurement-info">Medidas: 48x40x75 cm</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de ayuda -->
+    <div class="modal" id="help-modal">
+        <div class="modal-content">
+            <h2>Ayuda - App de Dibujo Técnico</h2>
+            <h3>Cómo usar:</h3>
+            <ul>
+                <li><strong>Selecciona una herramienta</strong> del panel izquierdo</li>
+                <li><strong>Establece las medidas</strong> en centímetros o milímetros</li>
+                <li><strong>Haz clic y arrastra</strong> en el área de dibujo para crear formas</li>
+                <li><strong>Cada cuadro de la cuadrícula representa 1cm</strong> a escala 1:10</li>
+                <li><strong>Usa las vistas predefinidas</strong> para cambiar entre planta, frontal y lateral</li>
+                <li><strong>Zoom:</strong> Usa los botones + y - o la rueda del mouse</li>
+            </ul>
+            
+            <h3>Atajos de teclado:</h3>
+            <ul>
+                <li><strong>R:</strong> Rectángulo</li>
+                <li><strong>C:</strong> Círculo</li>
+                <li><strong>L:</strong> Línea</li>
+                <li><strong>T:</strong> Texto</li>
+                <li><strong>D:</strong> Dimensión</li>
+                <li><strong>Delete:</strong> Eliminar elemento seleccionado</li>
+                <li><strong>Ctrl+Z:</strong> Deshacer</li>
+            </ul>
+            
+            <button class="close-modal" id="close-help">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuración inicial
+        const canvas = document.getElementById('drawing-canvas');
+        const ctx = canvas.getContext('2d');
+        const gridCanvas = document.getElementById('grid-canvas');
+        const gridCtx = gridCanvas.getContext('2d');
+        
+        let currentTool = 'select';
+        let isDrawing = false;
+        let startX, startY;
+        let currentColor = '#1abc9c';
+        let scale = 1;
+        let gridEnabled = true;
+        
+        // Medidas actuales
+        let currentWidth = 48;
+        let currentHeight = 40;
+        let currentLength = 75;
+        let currentUnit = 'cm';
+        
+        // Elementos dibujados
+        const elements = [];
+        let selectedElement = null;
+        
+        // Inicializar la cuadrícula
+        function drawGrid() {
+            gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+            
+            if (!gridEnabled) return;
+            
+            gridCtx.strokeStyle = '#4a6572';
+            gridCtx.lineWidth = 0.5;
+            
+            const gridSize = 10; // 1cm = 10px a escala 1:10
+            
+            // Líneas verticales
+            for (let x = 0; x < gridCanvas.width; x += gridSize) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(x, 0);
+                gridCtx.lineTo(x, gridCanvas.height);
+                gridCtx.stroke();
+            }
+            
+            // Líneas horizontales
+            for (let y = 0; y < gridCanvas.height; y += gridSize) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(0, y);
+                gridCtx.lineTo(gridCanvas.width, y);
+                gridCtx.stroke();
+            }
+            
+            // Marcadores cada 10cm
+            gridCtx.strokeStyle = '#5d7a8c';
+            gridCtx.lineWidth = 1;
+            
+            for (let x = 0; x < gridCanvas.width; x += gridSize * 10) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(x, 0);
+                gridCtx.lineTo(x, gridCanvas.height);
+                gridCtx.stroke();
+            }
+            
+            for (let y = 0; y < gridCanvas.height; y += gridSize * 10) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(0, y);
+                gridCtx.lineTo(gridCanvas.width, y);
+                gridCtx.stroke();
+            }
+        }
+        
+        // Dibujar todos los elementos
+        function drawElements() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            elements.forEach(element => {
+                ctx.save();
+                
+                if (element === selectedElement) {
+                    ctx.strokeStyle = '#f1c40f';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([5, 5]);
+                } else {
+                    ctx.strokeStyle = element.color;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([]);
+                }
+                
+                ctx.fillStyle = element.color + '40'; // Color con transparencia
+                
+                switch (element.type) {
+                    case 'rectangle':
+                        ctx.fillRect(element.x, element.y, element.width, element.height);
+                        ctx.strokeRect(element.x, element.y, element.width, element.height);
+                        break;
+                    
+                    case 'circle':
+                        ctx.beginPath();
+                        ctx.arc(element.x, element.y, element.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                    
+                    case 'line':
+                        ctx.beginPath();
+                        ctx.moveTo(element.x1, element.y1);
+                        ctx.lineTo(element.x2, element.y2);
+                        ctx.stroke();
+                        break;
+                    
+                    case 'text':
+                        ctx.fillStyle = element.color;
+                        ctx.font = '14px Arial';
+                        ctx.fillText(element.text, element.x, element.y);
+                        break;
+                    
+                    case 'dimension':
+                        ctx.strokeStyle = '#95a5a6';
+                        ctx.setLineDash([]);
+                        
+                        // Línea de dimensión
+                        ctx.beginPath();
+                        ctx.moveTo(element.x1, element.y1);
+                        ctx.lineTo(element.x2, element.y2);
+                        ctx.stroke();
+                        
+                        // Texto de dimensión
+                        ctx.fillStyle = '#ecf0f1';
+                        ctx.font = '12px Arial';
+                        const text = element.value + (currentUnit === 'cm' ? ' cm' : ' mm');
+                        ctx.fillText(text, (element.x1 + element.x2) / 2, (element.y1 + element.y2) / 2 - 5);
+                        break;
+                }
+                
+                ctx.restore();
+            });
+        }
+        
+        // Event Listeners
+        document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentTool = this.dataset.tool;
+                updateStatus();
+            });
+        });
+        
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('active'));
+                this.classList.add('active');
+                currentColor = this.dataset.color;
+            });
+        });
+        
+        document.querySelectorAll('.preset-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.getElementById('width-input').value = this.dataset.width;
+                document.getElementById('height-input').value = this.dataset.height;
+                document.getElementById('length-input').value = this.dataset.length;
+                
+                currentWidth = parseInt(this.dataset.width);
+                currentHeight = parseInt(this.dataset.height);
+                currentLength = parseInt(this.dataset.length);
+                
+                updateStatus();
+            });
+        });
+        
+        // Actualizar medidas desde inputs
+        document.getElementById('width-input').addEventListener('change', function() {
+            currentWidth = parseInt(this.value) || 48;
+            updateStatus();
+        });
+        
+        document.getElementById('height-input').addEventListener('change', function() {
+            currentHeight = parseInt(this.value) || 40;
+            updateStatus();
+        });
+        
+        document.getElementById('length-input').addEventListener('change', function() {
+            currentLength = parseInt(this.value) || 75;
+            updateStatus();
+        });
+        
+        document.getElementById('unit-select').addEventListener('change', function() {
+            currentUnit = this.value;
+            updateStatus();
+        });
+        
+        // Controles de zoom
+        document.getElementById('zoom-in').addEventListener('click', function() {
+            scale = Math.min(scale + 0.1, 3);
+            updateZoom();
+        });
+        
+        document.getElementById('zoom-out').addEventListener('click', function() {
+            scale = Math.max(scale - 0.1, 0.3);
+            updateZoom();
+        });
+        
+        document.getElementById('fit-to-screen').addEventListener('click', function() {
+            scale = 1;
+            updateZoom();
+        });
+        
+        // Cuadrícula
+        document.getElementById('grid-toggle').addEventListener('click', function() {
+            gridEnabled = !gridEnabled;
+            this.textContent = gridEnabled ? 'Cuadrícula: ON' : 'Cuadrícula: OFF';
+            drawGrid();
+        });
+        
+        // Limpiar canvas
+        document.getElementById('clear-btn').addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que quieres limpiar todo el dibujo?')) {
+                elements.length = 0;
+                selectedElement = null;
+                drawElements();
+            }
+        });
+        
+        // Ayuda
+        document.getElementById('help-btn').addEventListener('click', function() {
+            document.getElementById('help-modal').style.display = 'flex';
+        });
+        
+        document.getElementById('close-help').addEventListener('click', function() {
+            document.getElementById('help-modal').style.display = 'none';
+        });
+        
+        // Eventos del canvas
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        canvas.addEventListener('mousemove', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / scale;
+            const y = (e.clientY - rect.top) / scale;
+            document.getElementById('cursor-position').textContent = `X: ${Math.round(x/10)}cm, Y: ${Math.round(y/10)}cm`;
+        });
+        
+        function startDrawing(e) {
+            const rect = canvas.getBoundingClientRect();
+            startX = (e.clientX - rect.left) / scale;
+            startY = (e.clientY - rect.top) / scale;
+            
+            if (currentTool === 'select') {
+                // Buscar elemento bajo el cursor
+                selectedElement = null;
+                for (let i = elements.length - 1; i >= 0; i--) {
+                    const element = elements[i];
+                    if (isPointInElement(startX, startY, element)) {
+                        selectedElement = element;
+                        break;
+                    }
+                }
+                drawElements();
+                return;
+            }
+            
+            isDrawing = true;
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const currentX = (e.clientX - rect.left) / scale;
+            const currentY = (e.clientY - rect.top) / scale;
+            
+            // Dibujar preview
+            drawElements();
+            ctx.save();
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 3]);
+            
+            switch (currentTool) {
+                case 'rectangle':
+                    const width = currentX - startX;
+                    const height = currentY - startY;
+                    ctx.strokeRect(startX, startY, width, height);
+                    break;
+                
+                case 'circle':
+                    const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
+                    ctx.beginPath();
+                    ctx.arc(startX, startY, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    break;
+                
+                case 'line':
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(currentX, currentY);
+                    ctx.stroke();
+                    break;
+            }
+            
+            ctx.restore();
+        }
+        
+        function stopDrawing(e) {
+            if (!isDrawing) return;
+            
+            isDrawing = false;
+            const rect = canvas.getBoundingClientRect();
+            const endX = (e.clientX - rect.left) / scale;
+            const endY = (e.clientY - rect.top) / scale;
+            
+            let newElement = null;
+            
+            switch (currentTool) {
+                case 'rectangle':
+                    newElement = {
+                        type: 'rectangle',
+                        x: startX,
+                        y: startY,
+                        width: endX - startX,
+                        height: endY - startY,
+                        color: currentColor
+                    };
+                    break;
+                
+                case 'circle':
+                    const radius = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+                    newElement = {
+                        type: 'circle',
+                        x: startX,
+                        y: startY,
+                        radius: radius,
+                        color: currentColor
+                    };
+                    break;
+                
+                case 'line':
+                    newElement = {
+                        type: 'line',
+                        x1: startX,
+                        y1: startY,
+                        x2: endX,
+                        y2: endY,
+                        color: currentColor
+                    };
+                    break;
+                
+                case 'text':
+                    const text = prompt('Ingresa el texto:');
+                    if (text) {
+                        newElement = {
+                            type: 'text',
+                            x: startX,
+                            y: startY,
+                            text: text,
+                            color: currentColor
+                        };
+                    }
+                    break;
+                
+                case 'dimension':
+                    const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+                    const realDistance = (distance / 10).toFixed(1); // Convertir a cm
+                    newElement = {
+                        type: 'dimension',
+                        x1: startX,
+                        y1: startY,
+                        x2: endX,
+                        y2: endY,
+                        value: realDistance,
+                        color: currentColor
+                    };
+                    break;
+            }
+            
+            if (newElement) {
+                elements.push(newElement);
+                drawElements();
+            }
+        }
+        
+        function isPointInElement(x, y, element) {
+            switch (element.type) {
+                case 'rectangle':
+                    return x >= element.x && x <= element.x + element.width &&
+                           y >= element.y && y <= element.y + element.height;
+                
+                case 'circle':
+                    return Math.sqrt(Math.pow(x - element.x, 2) + Math.pow(y - element.y, 2)) <= element.radius;
+                
+                case 'line':
+                    // Simplificación para selección de líneas
+                    const distance = pointToLineDistance(x, y, element.x1, element.y1, element.x2, element.y2);
+                    return distance < 5;
+                
+                default:
+                    return false;
+            }
+        }
+        
+        function pointToLineDistance(x, y, x1, y1, x2, y2) {
+            const A = x - x1;
+            const B = y - y1;
+            const C = x2 - x1;
+            const D = y2 - y1;
+            
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            let param = -1;
+            
+            if (lenSq !== 0) param = dot / lenSq;
+            
+            let xx, yy;
+            
+            if (param < 0) {
+                xx = x1;
+                yy = y1;
+            } else if (param > 1) {
+                xx = x2;
+                yy = y2;
+            } else {
+                xx = x1 + param * C;
+                yy = y1 + param * D;
+            }
+            
+            const dx = x - xx;
+            const dy = y - yy;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        function updateZoom() {
+            canvas.style.transform = `scale(${scale})`;
+            gridCanvas.style.transform = `scale(${scale})`;
+            document.getElementById('zoom-level').textContent = Math.round(scale * 100) + '%';
+        }
+        
+        function updateStatus() {
+            document.getElementById('selected-tool').textContent = `Herramienta: ${getToolName(currentTool)}`;
+            document.getElementById('measurement-info').textContent = 
+                `Medidas: ${currentWidth}x${currentHeight}x${currentLength} ${currentUnit}`;
+        }
+        
+        function getToolName(tool) {
+            const names = {
+                'select': 'Seleccionar',
+                'rectangle': 'Rectángulo',
+                'circle': 'Círculo',
+                'line': 'Línea',
+                'text': 'Texto',
+                'dimension': 'Dimensión'
+            };
+            return names[tool] || tool;
+        }
+        
+        // Inicializar
+        drawGrid();
+        drawElements();
+        updateStatus();
+        
+        // Atajos de teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT') return;
+            
+            switch (e.key.toLowerCase()) {
+                case 'r':
+                    document.querySelector('[data-tool="rectangle"]').click();
+                    break;
+                case 'c':
+                    document.querySelector('[data-tool="circle"]').click();
+                    break;
+                case 'l':
+                    document.querySelector('[data-tool="line"]').click();
+                    break;
+                case 't':
+                    document.querySelector('[data-tool="text"]').click();
+                    break;
+                case 'd':
+                    document.querySelector('[data-tool="dimension"]').click();
+                    break;
+                case 'delete':
+                    if (selectedElement) {
+                        const index = elements.indexOf(selectedElement);
+                        if (index > -1) {
+                            elements.splice(index, 1);
+                            selectedElement = null;
+                            drawElements();
+                        }
+                    }
+                    break;
+            }
+            
+            if (e.ctrlKey && e.key === 'z') {
+                if (elements.length > 0) {
+                    elements.pop();
+                    drawElements();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
