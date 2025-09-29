@@ -116,6 +116,15 @@
             background: #8e44ad;
         }
         
+        .move-btn {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .move-btn:hover {
+            background: #e67e22;
+        }
+        
         .measurement-inputs {
             display: flex;
             flex-direction: column;
@@ -349,6 +358,7 @@
                 <div class="action-buttons">
                     <button class="action-btn update-btn" id="update-btn">Actualizar</button>
                     <button class="action-btn save-btn" id="save-btn">Guardar</button>
+                    <button class="action-btn move-btn" id="move-btn">Mover</button>
                 </div>
                 
                 <div class="preset-measurements">
@@ -428,8 +438,8 @@
                 <li><strong>3.</strong> Haz clic y arrastra en el área de dibujo para crear formas</li>
                 <li><strong>4.</strong> Cada cuadro de la cuadrícula representa 1cm a escala 1:10</li>
                 <li><strong>5.</strong> Usa los presets para medidas comunes del Eco-Torky</li>
-                <li><strong>6.</strong> Usa "Actualizar" para aplicar cambios de medidas</li>
-                <li><strong>7.</strong> Usa "Dibujo Ref." para ver el vehículo completo</li>
+                <li><strong>6.</strong> <strong>Selecciona y Mueve:</strong> Haz clic en un elemento y usa el botón "Mover"</li>
+                <li><strong>7.</strong> <strong>Distribución:</strong> Cajón atrás → Asientos → Espacio → Asiento delantero</li>
             </ul>
             
             <h3>⌨️ Atajos de teclado:</h3>
@@ -439,6 +449,7 @@
                 <li><strong>L:</strong> Línea</li>
                 <li><strong>T:</strong> Texto</li>
                 <li><strong>M:</strong> Medir</li>
+                <li><strong>G:</strong> Mover elemento</li>
                 <li><strong>Delete:</strong> Eliminar elemento seleccionado</li>
                 <li><strong>Ctrl+Z:</strong> Deshacer</li>
             </ul>
@@ -457,6 +468,7 @@
         // Estado de la aplicación
         let currentTool = 'select';
         let isDrawing = false;
+        let isMoving = false;
         let startX, startY;
         let currentColor = '#3498db';
         let scale = 1;
@@ -470,6 +482,8 @@
         // Elementos dibujados
         const elements = [];
         let selectedElement = null;
+        let moveOffsetX = 0;
+        let moveOffsetY = 0;
         
         // Inicializar la cuadrícula
         function drawGrid() {
@@ -520,28 +534,43 @@
         function drawElements() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            elements.forEach(element => {
-                ctx.save();
-                
-                // Configuración para elemento seleccionado
-                if (element === selectedElement) {
-                    ctx.strokeStyle = '#f1c40f';
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([5, 5]);
-                } else {
-                    ctx.strokeStyle = element.color;
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([]);
-                }
-                
-                ctx.fillStyle = element.color + '40'; // Color con transparencia
-                
-                switch (element.type) {
-                    case 'rectangle':
-                        ctx.fillRect(element.x, element.y, element.width, element.height);
-                        ctx.strokeRect(element.x, element.y, element.width, element.height);
-                        
-                        // Etiqueta de medidas
+            // Dibujar el chasis primero (fondo)
+            elements.filter(el => el.type === 'chassis').forEach(element => {
+                drawElement(element);
+            });
+            
+            // Luego dibujar los demás elementos
+            elements.filter(el => el.type !== 'chassis').forEach(element => {
+                drawElement(element);
+            });
+            
+            updateElementCount();
+        }
+        
+        function drawElement(element) {
+            ctx.save();
+            
+            // Configuración para elemento seleccionado
+            if (element === selectedElement) {
+                ctx.strokeStyle = '#f1c40f';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+            } else {
+                ctx.strokeStyle = element.color;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([]);
+            }
+            
+            ctx.fillStyle = element.color + '40'; // Color con transparencia
+            
+            switch (element.type) {
+                case 'chassis':
+                case 'rectangle':
+                    ctx.fillRect(element.x, element.y, element.width, element.height);
+                    ctx.strokeRect(element.x, element.y, element.width, element.height);
+                    
+                    // Etiqueta de medidas
+                    if (element.type !== 'chassis') {
                         ctx.fillStyle = element.color;
                         ctx.font = '12px Arial';
                         ctx.fillText(
@@ -549,66 +578,64 @@
                             element.x + 5, 
                             element.y + 15
                         );
-                        break;
-                    
-                    case 'circle':
-                        ctx.beginPath();
-                        ctx.arc(element.x, element.y, element.radius, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.stroke();
-                        
-                        // Etiqueta de radio
-                        ctx.fillStyle = element.color;
-                        ctx.font = '12px Arial';
-                        ctx.fillText(
-                            `⌀${(element.radius * 2/10).toFixed(1)}cm`, 
-                            element.x - 20, 
-                            element.y - 10
-                        );
-                        break;
-                    
-                    case 'line':
-                        ctx.beginPath();
-                        ctx.moveTo(element.x1, element.y1);
-                        ctx.lineTo(element.x2, element.y2);
-                        ctx.stroke();
-                        break;
-                    
-                    case 'text':
-                        ctx.fillStyle = element.color;
-                        ctx.font = '14px Arial';
-                        ctx.fillText(element.text, element.x, element.y);
-                        break;
-                    
-                    case 'dimension':
-                        ctx.strokeStyle = '#95a5a6';
-                        ctx.setLineDash([5, 3]);
-                        ctx.lineWidth = 1;
-                        
-                        // Línea de dimensión
-                        ctx.beginPath();
-                        ctx.moveTo(element.x1, element.y1);
-                        ctx.lineTo(element.x2, element.y2);
-                        ctx.stroke();
-                        
-                        // Texto de dimensión
-                        ctx.fillStyle = '#ecf0f1';
-                        ctx.font = '12px Arial';
-                        ctx.fillText(
-                            element.value + ' cm', 
-                            (element.x1 + element.x2) / 2 - 15, 
-                            (element.y1 + element.y2) / 2 - 5
-                        );
-                        break;
-                }
+                    }
+                    break;
                 
-                ctx.restore();
-            });
+                case 'circle':
+                    ctx.beginPath();
+                    ctx.arc(element.x, element.y, element.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Etiqueta de radio
+                    ctx.fillStyle = element.color;
+                    ctx.font = '12px Arial';
+                    ctx.fillText(
+                        `⌀${(element.radius * 2/10).toFixed(1)}cm`, 
+                        element.x - 20, 
+                        element.y - 10
+                    );
+                    break;
+                
+                case 'line':
+                    ctx.beginPath();
+                    ctx.moveTo(element.x1, element.y1);
+                    ctx.lineTo(element.x2, element.y2);
+                    ctx.stroke();
+                    break;
+                
+                case 'text':
+                    ctx.fillStyle = element.color;
+                    ctx.font = '14px Arial';
+                    ctx.fillText(element.text, element.x, element.y);
+                    break;
+                
+                case 'dimension':
+                    ctx.strokeStyle = '#95a5a6';
+                    ctx.setLineDash([5, 3]);
+                    ctx.lineWidth = 1;
+                    
+                    // Línea de dimensión
+                    ctx.beginPath();
+                    ctx.moveTo(element.x1, element.y1);
+                    ctx.lineTo(element.x2, element.y2);
+                    ctx.stroke();
+                    
+                    // Texto de dimensión
+                    ctx.fillStyle = '#ecf0f1';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(
+                        element.value + ' cm', 
+                        (element.x1 + element.x2) / 2 - 15, 
+                        (element.y1 + element.y2) / 2 - 5
+                    );
+                    break;
+            }
             
-            updateElementCount();
+            ctx.restore();
         }
         
-        // Dibujar referencia del vehículo completo
+        // Dibujar referencia del vehículo completo con distribución correcta
         function drawVehicleReference() {
             // Limpiar elementos existentes
             elements.length = 0;
@@ -616,71 +643,173 @@
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             
-            // Chasis principal
+            // Chasis principal (fondo)
             elements.push({
-                type: 'rectangle',
+                type: 'chassis',
                 x: centerX - (currentLength * 5),
                 y: centerY - (currentWidth * 5),
                 width: currentLength * 10,
                 height: currentWidth * 10,
-                color: '#3498db'
+                color: '#34495e'
             });
             
-            // Asientos frontales
+            // DISTRIBUCIÓN CORRECTA:
+            // 1. Cajón de carga (parte trasera)
+            const cajonLength = 78;
             elements.push({
                 type: 'rectangle',
-                x: centerX - (currentLength * 4),
+                x: centerX + (currentLength * 5) - (cajonLength * 10), // Parte derecha (trasera)
+                y: centerY - (currentWidth * 4),
+                width: cajonLength * 10,
+                height: 75 * 10,
+                color: '#9b59b6',
+                name: 'cajon'
+            });
+            
+            // 2. Asientos traseros (después del cajón)
+            const asientoTraseroX = centerX + (currentLength * 5) - (cajonLength * 10) - (48 * 10) - 100; // Espacio de 10cm
+            elements.push({
+                type: 'rectangle',
+                x: asientoTraseroX,
                 y: centerY - (currentWidth * 4),
                 width: 48 * 10,
                 height: 75 * 10,
-                color: '#2ecc71'
+                color: '#2ecc71',
+                name: 'asiento_trasero'
             });
             
-            // Cajón de carga
+            // 3. Espacio entre asientos
+            const espacioLength = 32;
+            const espacioX = asientoTraseroX - (espacioLength * 10);
+            
+            // 4. Asientos delanteros (parte delantera)
+            const asientoDelanteroX = espacioX - (48 * 10);
             elements.push({
                 type: 'rectangle',
-                x: centerX,
+                x: asientoDelanteroX,
                 y: centerY - (currentWidth * 4),
-                width: 78 * 10,
+                width: 48 * 10,
                 height: 75 * 10,
-                color: '#9b59b6'
+                color: '#1abc9c',
+                name: 'asiento_delantero'
             });
             
-            // Ruedas
+            // Ruedas (en las esquinas del chasis)
             const wheelRadius = 25 * 10; // 25cm de radio
             elements.push({
                 type: 'circle',
-                x: centerX - (currentLength * 4),
+                x: centerX - (currentLength * 4.5),
                 y: centerY - (currentWidth * 4.5),
                 radius: wheelRadius,
-                color: '#e74c3c'
+                color: '#e74c3c',
+                name: 'rueda_del_izq'
             });
             
             elements.push({
                 type: 'circle',
-                x: centerX - (currentLength * 4),
+                x: centerX - (currentLength * 4.5),
                 y: centerY + (currentWidth * 4.5),
                 radius: wheelRadius,
-                color: '#e74c3c'
+                color: '#e74c3c',
+                name: 'rueda_del_der'
             });
             
             elements.push({
                 type: 'circle',
-                x: centerX + (currentLength * 4),
+                x: centerX + (currentLength * 4.5),
                 y: centerY - (currentWidth * 4.5),
                 radius: wheelRadius,
-                color: '#e74c3c'
+                color: '#e74c3c',
+                name: 'rueda_tras_izq'
             });
             
             elements.push({
                 type: 'circle',
-                x: centerX + (currentLength * 4),
+                x: centerX + (currentLength * 4.5),
                 y: centerY + (currentWidth * 4.5),
                 radius: wheelRadius,
-                color: '#e74c3c'
+                color: '#e74c3c',
+                name: 'rueda_tras_der'
+            });
+            
+            // Etiquetas de distribución
+            elements.push({
+                type: 'text',
+                x: centerX + (currentLength * 4.8),
+                y: centerY - (currentWidth * 3),
+                text: 'CAJÓN',
+                color: '#ecf0f1'
+            });
+            
+            elements.push({
+                type: 'text',
+                x: asientoTraseroX + 20,
+                y: centerY - (currentWidth * 3),
+                text: 'ASIENTO TRASERO',
+                color: '#ecf0f1'
+            });
+            
+            elements.push({
+                type: 'text',
+                x: asientoDelanteroX + 20,
+                y: centerY - (currentWidth * 3),
+                text: 'ASIENTO DELANTERO',
+                color: '#ecf0f1'
             });
             
             drawElements();
+        }
+        
+        // Mover elemento seleccionado
+        function startMoving(e) {
+            if (!selectedElement) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) / scale;
+            const mouseY = (e.clientY - rect.top) / scale;
+            
+            // Calcular offset del mouse respecto al elemento
+            if (selectedElement.type === 'rectangle' || selectedElement.type === 'chassis') {
+                moveOffsetX = mouseX - selectedElement.x;
+                moveOffsetY = mouseY - selectedElement.y;
+            } else if (selectedElement.type === 'circle') {
+                moveOffsetX = mouseX - selectedElement.x;
+                moveOffsetY = mouseY - selectedElement.y;
+            }
+            
+            isMoving = true;
+            canvas.style.cursor = 'grabbing';
+        }
+        
+        function moveElement(e) {
+            if (!isMoving || !selectedElement) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) / scale;
+            const mouseY = (e.clientY - rect.top) / scale;
+            
+            // Mover elemento según el tipo
+            if (selectedElement.type === 'rectangle' || selectedElement.type === 'chassis') {
+                selectedElement.x = mouseX - moveOffsetX;
+                selectedElement.y = mouseY - moveOffsetY;
+            } else if (selectedElement.type === 'circle') {
+                selectedElement.x = mouseX - moveOffsetX;
+                selectedElement.y = mouseY - moveOffsetY;
+            } else if (selectedElement.type === 'line') {
+                const deltaX = mouseX - (selectedElement.x1 + moveOffsetX);
+                const deltaY = mouseY - (selectedElement.y1 + moveOffsetY);
+                selectedElement.x1 += deltaX;
+                selectedElement.y1 += deltaY;
+                selectedElement.x2 += deltaX;
+                selectedElement.y2 += deltaY;
+            }
+            
+            drawElements();
+        }
+        
+        function stopMoving() {
+            isMoving = false;
+            canvas.style.cursor = 'crosshair';
         }
         
         // Event Listeners para herramientas
@@ -741,6 +870,17 @@
             alert('✅ Plano guardado como eco-torky-plano.png');
         });
         
+        // Botón Mover
+        document.getElementById('move-btn').addEventListener('click', function() {
+            if (selectedElement) {
+                currentTool = 'move';
+                canvas.style.cursor = 'grab';
+                updateStatus();
+            } else {
+                alert('⚠️ Primero selecciona un elemento para mover');
+            }
+        });
+        
         // Botón Dibujo Referencia
         document.getElementById('draw-reference').addEventListener('click', function() {
             drawVehicleReference();
@@ -793,6 +933,22 @@
         canvas.addEventListener('mouseup', stopDrawing);
         canvas.addEventListener('mouseout', stopDrawing);
         
+        // Eventos para mover elementos
+        canvas.addEventListener('mousedown', function(e) {
+            if (currentTool === 'move' && selectedElement) {
+                startMoving(e);
+            }
+        });
+        
+        canvas.addEventListener('mousemove', function(e) {
+            if (currentTool === 'move' && isMoving) {
+                moveElement(e);
+            }
+        });
+        
+        canvas.addEventListener('mouseup', stopMoving);
+        canvas.addEventListener('mouseout', stopMoving);
+        
         // Seguimiento del cursor
         canvas.addEventListener('mousemove', function(e) {
             const rect = canvas.getBoundingClientRect();
@@ -803,6 +959,8 @@
         });
         
         function startDrawing(e) {
+            if (currentTool === 'move') return;
+            
             const rect = canvas.getBoundingClientRect();
             startX = (e.clientX - rect.left) / scale;
             startY = (e.clientY - rect.top) / scale;
@@ -825,7 +983,7 @@
         }
         
         function draw(e) {
-            if (!isDrawing) return;
+            if (!isDrawing || currentTool === 'move') return;
             
             const rect = canvas.getBoundingClientRect();
             const currentX = (e.clientX - rect.left) / scale;
@@ -865,7 +1023,7 @@
         }
         
         function stopDrawing(e) {
-            if (!isDrawing) return;
+            if (!isDrawing || currentTool === 'move') return;
             
             isDrawing = false;
             const rect = canvas.getBoundingClientRect();
@@ -945,6 +1103,7 @@
         function isPointInElement(x, y, element) {
             switch (element.type) {
                 case 'rectangle':
+                case 'chassis':
                     return x >= element.x && x <= element.x + element.width &&
                            y >= element.y && y <= element.y + element.height;
                 
@@ -1013,7 +1172,8 @@
                 'circle': 'Círculo',
                 'line': 'Línea',
                 'text': 'Texto',
-                'dimension': 'Medir'
+                'dimension': 'Medir',
+                'move': 'Mover Elemento'
             };
             return names[tool] || tool;
         }
@@ -1027,7 +1187,7 @@
             
             console.log('✅ App de dibujo técnico inicializada correctamente');
             console.log('📐 Canvas: 2600x2600 px (260x260 cm)');
-            console.log('🚗 Vehículo completo: 215×90×155 cm');
+            console.log('🚗 Distribución: Cajón → Asiento Trasero → Espacio → Asiento Delantero');
         }
         
         // Atajos de teclado
@@ -1048,7 +1208,16 @@
                     document.querySelector('[data-tool="text"]').click();
                     break;
                 case 'm':
-                    document.querySelector('[data-tool="dimension"]').click();
+                    if (selectedElement) {
+                        document.getElementById('move-btn').click();
+                    } else {
+                        document.querySelector('[data-tool="dimension"]').click();
+                    }
+                    break;
+                case 'g':
+                    if (selectedElement) {
+                        document.getElementById('move-btn').click();
+                    }
                     break;
                 case 'delete':
                     if (selectedElement) {
