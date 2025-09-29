@@ -28,7 +28,7 @@
         
         /* Panel de herramientas */
         .toolbar {
-            width: 280px;
+            width: 300px;
             background: #2c3e50;
             padding: 20px;
             border-radius: 10px;
@@ -82,6 +82,40 @@
             box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
         }
         
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .update-btn {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        .update-btn:hover {
+            background: #27ae60;
+        }
+        
+        .save-btn {
+            background: #9b59b6;
+            color: white;
+        }
+        
+        .save-btn:hover {
+            background: #8e44ad;
+        }
+        
         .measurement-inputs {
             display: flex;
             flex-direction: column;
@@ -95,7 +129,7 @@
         }
         
         .input-group label {
-            min-width: 60px;
+            min-width: 80px;
             font-size: 12px;
             color: #bdc3c7;
         }
@@ -106,23 +140,13 @@
             color: #ecf0f1;
             padding: 8px;
             border-radius: 4px;
-            width: 80px;
+            width: 100px;
             font-size: 12px;
         }
         
         .measurement-input:focus {
             outline: none;
             border-color: #3498db;
-        }
-        
-        .unit-select {
-            background: #4a6572;
-            border: 1px solid #5d7a8c;
-            color: #ecf0f1;
-            padding: 8px;
-            border-radius: 4px;
-            width: 100%;
-            font-size: 12px;
         }
         
         .color-picker {
@@ -309,24 +333,29 @@
                 <h3>Medidas (cm)</h3>
                 <div class="measurement-inputs">
                     <div class="input-group">
+                        <label>Largo:</label>
+                        <input type="number" class="measurement-input" id="length-input" value="215" min="1">
+                    </div>
+                    <div class="input-group">
                         <label>Ancho:</label>
-                        <input type="number" class="measurement-input" id="width-input" value="48" min="1">
+                        <input type="number" class="measurement-input" id="width-input" value="90" min="1">
                     </div>
                     <div class="input-group">
                         <label>Alto:</label>
-                        <input type="number" class="measurement-input" id="height-input" value="40" min="1">
-                    </div>
-                    <div class="input-group">
-                        <label>Largo:</label>
-                        <input type="number" class="measurement-input" id="length-input" value="75" min="1">
+                        <input type="number" class="measurement-input" id="height-input" value="155" min="1">
                     </div>
                 </div>
                 
+                <div class="action-buttons">
+                    <button class="action-btn update-btn" id="update-btn">Actualizar</button>
+                    <button class="action-btn save-btn" id="save-btn">Guardar</button>
+                </div>
+                
                 <div class="preset-measurements">
-                    <div class="preset-item" data-width="185" data-height="155" data-length="90">Vehículo Completo</div>
-                    <div class="preset-item" data-width="48" data-height="40" data-length="75">Asiento Individual</div>
-                    <div class="preset-item" data-width="78" data-height="35" data-length="75">Cajón de Carga</div>
-                    <div class="preset-item" data-width="50" data-height="50" data-length="50">Rueda</div>
+                    <div class="preset-item" data-length="215" data-width="90" data-height="155">🚗 Vehículo Completo</div>
+                    <div class="preset-item" data-length="48" data-width="75" data-height="40">💺 Asiento Individual</div>
+                    <div class="preset-item" data-length="78" data-width="75" data-height="35">📦 Cajón de Carga</div>
+                    <div class="preset-item" data-length="50" data-width="50" data-height="50">⚪ Rueda</div>
                 </div>
             </div>
             
@@ -351,6 +380,7 @@
                     <button class="tool-btn" id="clear-btn">Limpiar Todo</button>
                     <button class="tool-btn" id="grid-toggle">Cuadrícula: ON</button>
                     <button class="tool-btn" id="help-btn">Ayuda</button>
+                    <button class="tool-btn" id="draw-reference">Dibujo Ref.</button>
                 </div>
             </div>
         </div>
@@ -375,13 +405,13 @@
             </div>
             
             <div class="canvas-container">
-                <canvas id="drawing-canvas" width="1600" height="1200"></canvas>
-                <canvas class="grid-overlay" id="grid-canvas" width="1600" height="1200"></canvas>
+                <canvas id="drawing-canvas" width="2600" height="2600"></canvas>
+                <canvas class="grid-overlay" id="grid-canvas" width="2600" height="2600"></canvas>
             </div>
             
             <div class="status-bar">
                 <span id="selected-tool">Herramienta: Seleccionar</span>
-                <span id="measurement-info">Medidas: 48×40×75 cm</span>
+                <span id="measurement-info">Medidas: 215×90×155 cm</span>
                 <span id="element-count">Elementos: 0</span>
             </div>
         </div>
@@ -398,6 +428,8 @@
                 <li><strong>3.</strong> Haz clic y arrastra en el área de dibujo para crear formas</li>
                 <li><strong>4.</strong> Cada cuadro de la cuadrícula representa 1cm a escala 1:10</li>
                 <li><strong>5.</strong> Usa los presets para medidas comunes del Eco-Torky</li>
+                <li><strong>6.</strong> Usa "Actualizar" para aplicar cambios de medidas</li>
+                <li><strong>7.</strong> Usa "Dibujo Ref." para ver el vehículo completo</li>
             </ul>
             
             <h3>⌨️ Atajos de teclado:</h3>
@@ -431,9 +463,9 @@
         let gridEnabled = true;
         
         // Medidas actuales
-        let currentWidth = 48;
-        let currentHeight = 40;
-        let currentLength = 75;
+        let currentLength = 215;
+        let currentWidth = 90;
+        let currentHeight = 155;
         
         // Elementos dibujados
         const elements = [];
@@ -576,6 +608,81 @@
             updateElementCount();
         }
         
+        // Dibujar referencia del vehículo completo
+        function drawVehicleReference() {
+            // Limpiar elementos existentes
+            elements.length = 0;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // Chasis principal
+            elements.push({
+                type: 'rectangle',
+                x: centerX - (currentLength * 5),
+                y: centerY - (currentWidth * 5),
+                width: currentLength * 10,
+                height: currentWidth * 10,
+                color: '#3498db'
+            });
+            
+            // Asientos frontales
+            elements.push({
+                type: 'rectangle',
+                x: centerX - (currentLength * 4),
+                y: centerY - (currentWidth * 4),
+                width: 48 * 10,
+                height: 75 * 10,
+                color: '#2ecc71'
+            });
+            
+            // Cajón de carga
+            elements.push({
+                type: 'rectangle',
+                x: centerX,
+                y: centerY - (currentWidth * 4),
+                width: 78 * 10,
+                height: 75 * 10,
+                color: '#9b59b6'
+            });
+            
+            // Ruedas
+            const wheelRadius = 25 * 10; // 25cm de radio
+            elements.push({
+                type: 'circle',
+                x: centerX - (currentLength * 4),
+                y: centerY - (currentWidth * 4.5),
+                radius: wheelRadius,
+                color: '#e74c3c'
+            });
+            
+            elements.push({
+                type: 'circle',
+                x: centerX - (currentLength * 4),
+                y: centerY + (currentWidth * 4.5),
+                radius: wheelRadius,
+                color: '#e74c3c'
+            });
+            
+            elements.push({
+                type: 'circle',
+                x: centerX + (currentLength * 4),
+                y: centerY - (currentWidth * 4.5),
+                radius: wheelRadius,
+                color: '#e74c3c'
+            });
+            
+            elements.push({
+                type: 'circle',
+                x: centerX + (currentLength * 4),
+                y: centerY + (currentWidth * 4.5),
+                radius: wheelRadius,
+                color: '#e74c3c'
+            });
+            
+            drawElements();
+        }
+        
         // Event Listeners para herramientas
         document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -598,32 +705,45 @@
         // Event Listeners para presets
         document.querySelectorAll('.preset-item').forEach(item => {
             item.addEventListener('click', function() {
+                document.getElementById('length-input').value = this.dataset.length;
                 document.getElementById('width-input').value = this.dataset.width;
                 document.getElementById('height-input').value = this.dataset.height;
-                document.getElementById('length-input').value = this.dataset.length;
                 
+                currentLength = parseInt(this.dataset.length);
                 currentWidth = parseInt(this.dataset.width);
                 currentHeight = parseInt(this.dataset.height);
-                currentLength = parseInt(this.dataset.length);
                 
                 updateStatus();
+                
+                // Si es el vehículo completo, dibujar referencia
+                if (this.dataset.length === "215") {
+                    drawVehicleReference();
+                }
             });
         });
         
-        // Actualizar medidas desde inputs
-        document.getElementById('width-input').addEventListener('input', function() {
-            currentWidth = parseInt(this.value) || 48;
+        // Botón Actualizar
+        document.getElementById('update-btn').addEventListener('click', function() {
+            currentLength = parseInt(document.getElementById('length-input').value) || 215;
+            currentWidth = parseInt(document.getElementById('width-input').value) || 90;
+            currentHeight = parseInt(document.getElementById('height-input').value) || 155;
+            
             updateStatus();
+            drawElements();
         });
         
-        document.getElementById('height-input').addEventListener('input', function() {
-            currentHeight = parseInt(this.value) || 40;
-            updateStatus();
+        // Botón Guardar
+        document.getElementById('save-btn').addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'eco-torky-plano.png';
+            link.href = canvas.toDataURL();
+            link.click();
+            alert('✅ Plano guardado como eco-torky-plano.png');
         });
         
-        document.getElementById('length-input').addEventListener('input', function() {
-            currentLength = parseInt(this.value) || 75;
-            updateStatus();
+        // Botón Dibujo Referencia
+        document.getElementById('draw-reference').addEventListener('click', function() {
+            drawVehicleReference();
         });
         
         // Controles de zoom
@@ -879,7 +999,7 @@
         function updateStatus() {
             document.getElementById('selected-tool').textContent = `Herramienta: ${getToolName(currentTool)}`;
             document.getElementById('measurement-info').textContent = 
-                `Medidas: ${currentWidth}×${currentHeight}×${currentLength} cm`;
+                `Medidas: ${currentLength}×${currentWidth}×${currentHeight} cm`;
         }
         
         function updateElementCount() {
@@ -906,8 +1026,8 @@
             updateZoom();
             
             console.log('✅ App de dibujo técnico inicializada correctamente');
-            console.log('🛠️  Herramientas disponibles:', ['select', 'rectangle', 'circle', 'line', 'text', 'dimension']);
-            console.log('📐 Escala: 1:10 (1 cuadro = 1cm)');
+            console.log('📐 Canvas: 2600x2600 px (260x260 cm)');
+            console.log('🚗 Vehículo completo: 215×90×155 cm');
         }
         
         // Atajos de teclado
